@@ -1,0 +1,12 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:title="@string/debug"
+        android:key="@string/pref_key_general">
+        <Preference
+            android:title="@string/pref_title_tutorial_reset"
+            android:key="@string/pref_key_tutorial_reset"
+            android:summary="@string/pref_summary_tutorial_reset" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

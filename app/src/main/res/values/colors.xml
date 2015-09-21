@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="weinrot">#A41101</color>
+    <color name="orange_hell">#E16500</color>
+    <color name="orange_dunkel">#C34E00</color>
+    <color name="orange_anders">#E04501</color>
+
+</resources>
