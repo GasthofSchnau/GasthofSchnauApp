@@ -58,21 +58,13 @@ public class ContactFragment extends Fragment {
                         }
                         break;
                     case 3:
-                        Util.makeToast(c, "COMING SOON! (vielleicht)");
+                        Intent intent = new Intent(android.content.Intent.ACTION_VIEW,
+                                Uri.parse("http://maps.google.com/maps?daddr=Gasthof+Schnau"));
+                        startActivity(intent);
                         break;
                 }
             }
         });
-
-        final LinearLayout.LayoutParams gridViewDetails = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-
-        final LinearLayout.LayoutParams textViewDetails = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
 
         return view;
     }
@@ -97,7 +89,7 @@ public class ContactFragment extends Fragment {
         }
 
         public View getView(int position, View convertView, ViewGroup parent) {
-            ImageView imageView = null;
+            ImageView imageView;
             if (convertView == null) {
                 imageView = new ImageView(mContext);
                 imageView.setLayoutParams(new GridView.LayoutParams(Util.convertToDip(150, mContext), Util.convertToDip(150, mContext)));

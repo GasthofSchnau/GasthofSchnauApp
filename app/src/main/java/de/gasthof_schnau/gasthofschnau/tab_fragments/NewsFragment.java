@@ -2,10 +2,13 @@ package de.gasthof_schnau.gasthofschnau.tab_fragments;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.provider.Settings;
+import android.preference.PreferenceManager;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
-import android.text.method.ScrollingMovementMethod;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -26,15 +29,20 @@ import java.util.Locale;
 
 import de.gasthof_schnau.gasthofschnau.Entry;
 import de.gasthof_schnau.gasthofschnau.R;
+import de.gasthof_schnau.gasthofschnau.SettingsActivity;
 import de.gasthof_schnau.gasthofschnau.lib.DownloadTask;
 import de.gasthof_schnau.gasthofschnau.lib.Internet;
+import de.gasthof_schnau.gasthofschnau.lib.Util;
 import de.gasthof_schnau.gasthofschnau.lib.XmlParser;
 
 public class NewsFragment extends Fragment {
 
     private Context c;
+    private View v;
 
     private List<Entry> entries;
+
+    private boolean showNoConnectionWarningToast = false;
 
     @Override
     public void onAttach(Context context) {
@@ -45,20 +53,46 @@ public class NewsFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        setHasOptionsMenu(true);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_news, null);
-        ((TextView) view.findViewById(R.id.text)).setMovementMethod(ScrollingMovementMethod.getInstance());
-        return view;
+        if (v == null) v = inflater.inflate(R.layout.fragment_news, null);
+        return v;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        update();
+        update(false);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_syncable, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_sync:
+                update(true);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        if(isVisibleToUser) {
+            if (showNoConnectionWarningToast) {
+                Util.makeToast(c, "Da momentan keine Verbindung zum Internet besteht, wurde die letzte verfügbare Sitzung wiederhergestellt.", 1);
+                showNoConnectionWarningToast = false;
+            }
+        }
     }
 
     private class DownloadNewsTask extends DownloadTask<List<Entry>> {
@@ -103,7 +137,7 @@ public class NewsFragment extends Fragment {
         @Override
         protected void onPostExecute(List<Entry> fertigeEntries) {
             entries = fertigeEntries;
-            showResult(true);
+            showResult();
         }
 
     }
@@ -134,67 +168,93 @@ public class NewsFragment extends Fragment {
         }
     }
 
-    public void update() {
+    public void update(boolean manuallyUpdated) {
+
+        v.findViewById(R.id.progressBar).setVisibility(View.VISIBLE);
 
         if (Internet.isOnline(c)) {
 
-            getView().findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
-            getView().findViewById(R.id.retryButton).setVisibility(View.GONE);
-            getView().findViewById(R.id.stand).setVisibility(View.GONE);
+            if((PreferenceManager.getDefaultSharedPreferences(c).getString(SettingsActivity.PREF_KEY_SYNC_NEWS, "").equals("Automatisch")) || (!new File(c.getFilesDir(), "news.xml").exists()) || manuallyUpdated) {
 
-            getView().findViewById(R.id.textTitle).setVisibility(View.VISIBLE);
-            getView().findViewById(R.id.text).setVisibility(View.VISIBLE);
+                v.findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
+                v.findViewById(R.id.retryButton).setVisibility(View.GONE);
+                v.findViewById(R.id.stand).setVisibility(View.GONE);
 
-            new DownloadNewsTask().execute("http://gasthofschnau.github.io/news.xml");
+                v.findViewById(R.id.textTitle).setVisibility(View.VISIBLE);
+                v.findViewById(R.id.text).setVisibility(View.VISIBLE);
 
-        } else {
-            if (new File(c.getFilesDir(), "news.xml").exists()) {
+                new DownloadNewsTask().execute("http://gasthofschnau.github.io/news.xml");
+
+            } else {
                 try {
                     Parser parser = new Parser();
                     InputStream stream = c.openFileInput("news.xml");
                     entries = parser.parse(stream);
                     stream.close();
 
-                    getView().findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
-                    getView().findViewById(R.id.retryButton).setVisibility(View.GONE);
+                    v.findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
+                    v.findViewById(R.id.retryButton).setVisibility(View.GONE);
 
-                    getView().findViewById(R.id.textTitle).setVisibility(View.VISIBLE);
-                    getView().findViewById(R.id.text).setVisibility(View.VISIBLE);
-                    getView().findViewById(R.id.stand).setVisibility(View.VISIBLE);
+                    v.findViewById(R.id.textTitle).setVisibility(View.VISIBLE);
+                    v.findViewById(R.id.text).setVisibility(View.VISIBLE);
+                    v.findViewById(R.id.stand).setVisibility(View.VISIBLE);
 
-                    showResult(false);
+                    showResult();
+                } catch (XmlPullParserException | IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        } else {
+            if (new File(c.getFilesDir(), "news.xml").exists()) {
+                if(getUserVisibleHint()) Util.makeToast(c, "Da momentan keine Verbindung zum Internet besteht, wurde die letzte verfügbare Sitzung wiederhergestellt.", 1);
+                else showNoConnectionWarningToast = true;
+
+                try {
+                    Parser parser = new Parser();
+                    InputStream stream = c.openFileInput("news.xml");
+                    entries = parser.parse(stream);
+                    stream.close();
+
+                    v.findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
+                    v.findViewById(R.id.retryButton).setVisibility(View.GONE);
+
+                    v.findViewById(R.id.textTitle).setVisibility(View.VISIBLE);
+                    v.findViewById(R.id.text).setVisibility(View.VISIBLE);
+                    v.findViewById(R.id.stand).setVisibility(View.VISIBLE);
+
+                    showResult();
                 } catch (XmlPullParserException | IOException e) {
                     e.printStackTrace();
                 }
             } else {
-                Button retryButton = (Button) getView().findViewById(R.id.retryButton);
+                Button retryButton = (Button) v.findViewById(R.id.retryButton);
                 retryButton.setOnClickListener(new Button.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        update();
+                        update(true);
                     }
                 });
 
-                getView().findViewById(R.id.textTitle).setVisibility(View.GONE);
-                getView().findViewById(R.id.text).setVisibility(View.GONE);
-                getView().findViewById(R.id.stand).setVisibility(View.GONE);
+                v.findViewById(R.id.textTitle).setVisibility(View.GONE);
+                v.findViewById(R.id.text).setVisibility(View.GONE);
+                v.findViewById(R.id.stand).setVisibility(View.GONE);
+                v.findViewById(R.id.progressBar).setVisibility(View.GONE);
 
-                getView().findViewById(R.id.noConnectionMessage).setVisibility(View.VISIBLE);
+                v.findViewById(R.id.noConnectionMessage).setVisibility(View.VISIBLE);
                 retryButton.setVisibility(View.VISIBLE);
             }
         }
     }
 
-    private void showResult(boolean isOnline) {
+    private void showResult() {
 
-        ((TextView) getView().findViewById(R.id.textTitle)).setText(entries.get(0).getTitle().replace("\\n", "\n"));
-        ((TextView) getView().findViewById(R.id.text)).setText(entries.get(0).getText().replace("\\n", "\n"));
+        ((TextView) v.findViewById(R.id.textTitle)).setText(entries.get(0).getTitle().replace("\\n", "\n"));
+        ((TextView) v.findViewById(R.id.text)).setText(entries.get(0).getText().replace("\\n", "\n"));
 
-        if(!isOnline) {
-            TextView stand = (TextView) getView().findViewById(R.id.stand);
-            stand.setText("Zuletzt aktualisiert:\n"+ new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(new File(c.getFilesDir().getPath(), "events.xml").lastModified()) + " Uhr");
-        }
+        ((TextView) v.findViewById(R.id.stand)).setText("Zuletzt aktualisiert:\n" + new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(new File(c.getFilesDir().getPath(), "events.xml").lastModified()) + " Uhr");
 
+        v.findViewById(R.id.progressBar).setVisibility(View.GONE);
     }
 
 }

@@ -1,14 +1,16 @@
 package de.gasthof_schnau.gasthofschnau.tab_fragments;
 
 import android.content.Context;
-import android.graphics.Typeface;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.util.SparseArray;
 import android.util.Xml;
-import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
@@ -25,23 +27,27 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
-import de.gasthof_schnau.gasthofschnau.Entry;
 import de.gasthof_schnau.gasthofschnau.R;
+import de.gasthof_schnau.gasthofschnau.SettingsActivity;
 import de.gasthof_schnau.gasthofschnau.lib.DownloadTask;
 import de.gasthof_schnau.gasthofschnau.lib.Internet;
+import de.gasthof_schnau.gasthofschnau.lib.Util;
 
 public class SpeisekarteFragment extends Fragment {
 
     private Context c;
+    private View v;
 
-    private List<Entry> entries;
     private List<GroupItem> groups;
     private ExpandableListView listView;
     private SpeisekarteAdapter adapter;
+
+    private boolean showNoConnectionWarningToast;
 
     @Override
     public void onAttach(Context context) {
@@ -52,81 +58,138 @@ public class SpeisekarteFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
         adapter = new SpeisekarteAdapter();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_speisekarte, null);
-        listView = (ExpandableListView) view.findViewById(R.id.listView);
+        if(v == null) v = inflater.inflate(R.layout.fragment_speisekarte, null);
+        listView = (ExpandableListView) v.findViewById(R.id.listView);
         listView.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
             @Override
             public boolean onGroupClick(ExpandableListView parent, View v,
-                                        int groupPosition, long id) {return true;}
+                                        int groupPosition, long id) {
+                return true;
+            }
         });
-        return view;
+        return v;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-
-        update();
+        update(false);
     }
 
-    private void update() {
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_syncable, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_sync:
+                update(true);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        if(isVisibleToUser) {
+            if (showNoConnectionWarningToast) {
+                Util.makeToast(c, "Da momentan keine Verbindung zum Internet besteht, wurde die letzte verfügbare Sitzung wiederhergestellt.", 1);
+                showNoConnectionWarningToast = false;
+            }
+        }
+    }
+
+    private void update(boolean manuallyUpdated) {
+
+        v.findViewById(R.id.progressBar).setVisibility(View.VISIBLE);
 
         if (Internet.isOnline(c)) {
 
-            getView().findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
-            getView().findViewById(R.id.retryButton).setVisibility(View.GONE);
-            getView().findViewById(R.id.stand).setVisibility(View.GONE);
+            if((PreferenceManager.getDefaultSharedPreferences(c).getString(SettingsActivity.PREF_KEY_SYNC_SPEISEKARTE, "").equals("Automatisch")) || (!new File(c.getFilesDir().getPath(), "speisekarte.xml").exists()) || manuallyUpdated) {
+                v.findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
+                v.findViewById(R.id.retryButton).setVisibility(View.GONE);
+                v.findViewById(R.id.stand).setVisibility(View.GONE);
 
-            getView().findViewById(R.id.listView).setVisibility(View.VISIBLE);
+                v.findViewById(R.id.listView).setVisibility(View.VISIBLE);
 
-            new DownloadSpeisekarteTask().execute("http://gasthofschnau.github.io/speisekarte.xml");
-
-        } else {
-            if (new File(c.getFilesDir().getPath(), "speisekarte.xml").exists()) {
+                new DownloadSpeisekarteTask().execute("http://gasthofschnau.github.io/speisekarte.xml");
+            } else {
                 try {
                     Parser parser = new Parser();
-                    InputStream stream = c.openFileInput("events.xml");
+                    InputStream stream = c.openFileInput("speisekarte.xml");
                     groups = parser.parse(stream);
                     stream.close();
 
-                    getView().findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
-                    getView().findViewById(R.id.retryButton).setVisibility(View.GONE);
+                    v.findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
+                    v.findViewById(R.id.retryButton).setVisibility(View.GONE);
 
-                    getView().findViewById(R.id.listView).setVisibility(View.VISIBLE);
-                    getView().findViewById(R.id.stand).setVisibility(View.VISIBLE);
+                    v.findViewById(R.id.listView).setVisibility(View.VISIBLE);
+                    v.findViewById(R.id.stand).setVisibility(View.VISIBLE);
 
-                    showList(false);
+                    showList();
+                } catch (XmlPullParserException | IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        } else {
+            if (new File(c.getFilesDir().getPath(), "speisekarte.xml").exists()) {
+                if(getUserVisibleHint()) Util.makeToast(c, "Da momentan keine Verbindung zum Internet besteht, wurde die letzte verfügbare Sitzung wiederhergestellt.", 1);
+                else showNoConnectionWarningToast = true;
+                try {
+                    Parser parser = new Parser();
+                    InputStream stream = c.openFileInput("speisekarte.xml");
+                    groups = parser.parse(stream);
+                    stream.close();
+
+                    v.findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
+                    v.findViewById(R.id.retryButton).setVisibility(View.GONE);
+
+                    v.findViewById(R.id.listView).setVisibility(View.VISIBLE);
+                    v.findViewById(R.id.stand).setVisibility(View.VISIBLE);
+
+                    showList();
                 } catch (XmlPullParserException | IOException e) {
                     e.printStackTrace();
                 }
             } else {
-                Button retryButton = (Button) getView().findViewById(R.id.retryButton);
+
+                Button retryButton = (Button) v.findViewById(R.id.retryButton);
                 retryButton.setOnClickListener(new Button.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        update();
+                        update(true);
                     }
                 });
 
-                getView().findViewById(R.id.listView).setVisibility(View.GONE);
-                getView().findViewById(R.id.stand).setVisibility(View.GONE);
+                v.findViewById(R.id.listView).setVisibility(View.GONE);
+                v.findViewById(R.id.stand).setVisibility(View.GONE);
+                v.findViewById(R.id.progressBar).setVisibility(View.GONE);
 
-                getView().findViewById(R.id.noConnectionMessage).setVisibility(View.VISIBLE);
+                v.findViewById(R.id.noConnectionMessage).setVisibility(View.VISIBLE);
                 retryButton.setVisibility(View.VISIBLE);
             }
         }
     }
 
-    private void showList(boolean isOnline) {
+    private void showList() {
 
         adapter.setData(groups);
         listView.setAdapter(adapter);
 
+        ((TextView) v.findViewById(R.id.stand)).setText("Zuletzt aktualisiert:\n" + new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(new File(c.getFilesDir().getPath(), "speisekarte.xml").lastModified()) + " Uhr");
+
+        v.findViewById(R.id.progressBar).setVisibility(View.GONE);
     }
 
     private class DownloadSpeisekarteTask extends DownloadTask<List<GroupItem>> {
@@ -172,7 +235,7 @@ public class SpeisekarteFragment extends Fragment {
 
         @Override
         protected void onPostExecute(List<GroupItem> fertigeGroups) {
-            showList(true);
+            showList();
         }
     }
 
@@ -254,13 +317,13 @@ public class SpeisekarteFragment extends Fragment {
                 }
                 switch (parser.getName()) {
                     case "title":
-                        child.title = readComponent(parser, "title");
+                        child.title = readComponent(parser, "title").replace("\\n", "\n");
                         break;
                     case "text":
-                        child.text = readComponent(parser, "text");
+                        child.text = readComponent(parser, "text").replace("\\n", "\n");
                         break;
                     case "price":
-                        child.price = readComponent(parser, "price");
+                        child.price = readComponent(parser, "price").replace("\\n", "\n");
                         break;
                     default:
                         skip(parser);

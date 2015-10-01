@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string-array name="pref_sync_connection_types_entries">
-        <item>Nur bei WLAN-Verbindung</item>
-        <item>In jedem Netzwerk</item>
+    <string-array name="pref_sync_entries">
+        <item>Automatisch</item>
+        <item>Nur Manuell</item>
     </string-array>
 
-    <string-array name="pref_sync_connection_types_values">
-        <item>wlan_only</item>
-        <item>any_network</item>
+    <string-array name="pref_sync_values">
+        <item>Automatisch</item>
+        <item>Nur Manuell</item>
     </string-array>
 
 </resources>

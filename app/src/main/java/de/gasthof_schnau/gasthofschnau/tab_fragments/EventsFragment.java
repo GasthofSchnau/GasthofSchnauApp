@@ -1,16 +1,23 @@
 package de.gasthof_schnau.gasthofschnau.tab_fragments;
 
 import android.content.Context;
-import android.graphics.Typeface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.util.SparseArray;
-import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ExpandableListView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -23,11 +30,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 import de.gasthof_schnau.gasthofschnau.Entry;
+import de.gasthof_schnau.gasthofschnau.MoreInfoActivity;
 import de.gasthof_schnau.gasthofschnau.R;
+import de.gasthof_schnau.gasthofschnau.SettingsActivity;
 import de.gasthof_schnau.gasthofschnau.lib.AnimatedExpandableListView;
 import de.gasthof_schnau.gasthofschnau.lib.DownloadTask;
 import de.gasthof_schnau.gasthofschnau.lib.Internet;
@@ -37,11 +47,14 @@ import de.gasthof_schnau.gasthofschnau.lib.XmlParser;
 public class EventsFragment extends Fragment {
 
     private Context c;
+    private View v;
 
     private List<Entry> entries;
     private EventsAdapter adapter;
     private AnimatedExpandableListView listView;
-    private SparseArray<GroupItem> groups;
+    private List<GroupItem> groups;
+
+    private boolean showNoConnectionWarningToast;
 
     @Override
     public void onAttach(Context context) {
@@ -52,21 +65,40 @@ public class EventsFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
         adapter = new EventsAdapter(c);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_events, null);
-        listView = (AnimatedExpandableListView) view.findViewById(R.id.listView);
-        return view;
+        if (v == null) v = inflater.inflate(R.layout.fragment_events, null);
+        listView = (AnimatedExpandableListView) v.findViewById(R.id.listView);
+        return v;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        update();
+        update(false);
     }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_syncable, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_sync:
+                update(true);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+
 
     private class DownloadEventsTask extends DownloadTask<List<Entry>> {
 
@@ -84,7 +116,7 @@ public class EventsFragment extends Fragment {
                 BufferedReader r = new BufferedReader(new InputStreamReader(input));
                 StringBuilder total = new StringBuilder();
                 String line;
-                while((line = r.readLine()) != null) {
+                while ((line = r.readLine()) != null) {
                     total.append(line);
                 }
                 output.write(total.toString().getBytes());
@@ -111,9 +143,20 @@ public class EventsFragment extends Fragment {
         @Override
         protected void onPostExecute(List<Entry> fertigeEntries) {
             entries = fertigeEntries;
-            showList(true);
+            showList();
         }
 
+    }
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        if(isVisibleToUser) {
+            if(showNoConnectionWarningToast) {
+                Util.makeToast(c, "Da momentan keine Verbindung zum Internet besteht, wurde die letzte verfügbare Sitzung wiederhergestellt.", 1);
+                showNoConnectionWarningToast = false;
+            }
+        }
     }
 
     private class Parser extends XmlParser {
@@ -128,22 +171,22 @@ public class EventsFragment extends Fragment {
                 }
                 switch (parser.getName()) {
                     case "title":
-                        entry.setTitle(readComponent(parser, "title"));
+                        entry.setTitle(readComponent(parser, "title").replace("\\n", "\n"));
                         break;
                     case "text":
-                        entry.setText(readComponent(parser, "text"));
+                        entry.setText(readComponent(parser, "text").replace("\\n", "\n"));
                         break;
                     case "date":
-                        entry.setDate(readComponent(parser, "date"));
+                        entry.setDate(readComponent(parser, "date").replace("\\n", "\n"));
                         break;
                     case "time":
-                        entry.setTime(readComponent(parser, "time"));
+                        entry.setTime(readComponent(parser, "time".replace("\\n", "\n")));
                         break;
                     case "price":
-                        entry.setPrice(readComponent(parser, "price"));
+                        entry.setPrice(readComponent(parser, "price").replace("\\n", "\n"));
                         break;
                     case "more_info":
-                        entry.setMoreInfo(readComponent(parser, "more_info"));
+                        entry.setMoreInfo(readComponent(parser, "more_info").replace("\\n", "\n"));
                         break;
                     default:
                         skip(parser);
@@ -154,57 +197,81 @@ public class EventsFragment extends Fragment {
         }
     }
 
-    public void update() {
+    public void update(boolean manuallyUpdated) {
+
+        v.findViewById(R.id.progressBar).setVisibility(View.VISIBLE);
 
         if (Internet.isOnline(c)) {
 
-            getView().findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
-            getView().findViewById(R.id.retryButton).setVisibility(View.GONE);
-            getView().findViewById(R.id.stand).setVisibility(View.GONE);
+            if ((PreferenceManager.getDefaultSharedPreferences(c).getString(SettingsActivity.PREF_KEY_SYNC_EVENTS, "").equals("Automatisch")) || (!new File(c.getFilesDir().getPath(), "events.xml").exists()) || manuallyUpdated) {
+                v.findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
+                v.findViewById(R.id.retryButton).setVisibility(View.GONE);
+                v.findViewById(R.id.stand).setVisibility(View.GONE);
 
-            getView().findViewById(R.id.listView).setVisibility(View.VISIBLE);
+                v.findViewById(R.id.listView).setVisibility(View.VISIBLE);
 
-            new DownloadEventsTask().execute("http://gasthofschnau.github.io/events.xml");
-
-        } else {
-            if (new File(c.getFilesDir().getPath(), "events.xml").exists()) {
+                new DownloadEventsTask().execute("http://gasthofschnau.github.io/events.xml");
+            } else {
                 try {
                     Parser parser = new Parser();
                     InputStream stream = c.openFileInput("events.xml");
                     entries = parser.parse(stream);
                     stream.close();
 
-                    getView().findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
-                    getView().findViewById(R.id.retryButton).setVisibility(View.GONE);
+                    v.findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
+                    v.findViewById(R.id.retryButton).setVisibility(View.GONE);
 
-                    getView().findViewById(R.id.listView).setVisibility(View.VISIBLE);
-                    getView().findViewById(R.id.stand).setVisibility(View.VISIBLE);
+                    v.findViewById(R.id.listView).setVisibility(View.VISIBLE);
+                    v.findViewById(R.id.stand).setVisibility(View.VISIBLE);
 
-                    showList(false);
+                    showList();
+                } catch (XmlPullParserException | IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        } else {
+            if (new File(c.getFilesDir().getPath(), "events.xml").exists()) {
+                if(getUserVisibleHint()) Util.makeToast(c, "Da momentan keine Verbindung zum Internet besteht, wurde die letzte verfügbare Sitzung wiederhergestellt.", 1);
+                else showNoConnectionWarningToast = true;
+                try {
+                    Parser parser = new Parser();
+                    InputStream stream = c.openFileInput("events.xml");
+                    entries = parser.parse(stream);
+                    stream.close();
+
+                    v.findViewById(R.id.noConnectionMessage).setVisibility(View.GONE);
+                    v.findViewById(R.id.retryButton).setVisibility(View.GONE);
+
+                    v.findViewById(R.id.listView).setVisibility(View.VISIBLE);
+                    v.findViewById(R.id.stand).setVisibility(View.VISIBLE);
+
+                    showList();
                 } catch (XmlPullParserException | IOException e) {
                     e.printStackTrace();
                 }
             } else {
-                Button retryButton = (Button) getView().findViewById(R.id.retryButton);
+                Button retryButton = (Button) v.findViewById(R.id.retryButton);
                 retryButton.setOnClickListener(new Button.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        update();
+                        update(true);
                     }
                 });
 
-                getView().findViewById(R.id.listView).setVisibility(View.GONE);
-                getView().findViewById(R.id.stand).setVisibility(View.GONE);
+                v.findViewById(R.id.listView).setVisibility(View.GONE);
+                v.findViewById(R.id.stand).setVisibility(View.GONE);
+                v.findViewById(R.id.progressBar).setVisibility(View.GONE);
 
-                getView().findViewById(R.id.noConnectionMessage).setVisibility(View.VISIBLE);
+                v.findViewById(R.id.noConnectionMessage).setVisibility(View.VISIBLE);
                 retryButton.setVisibility(View.VISIBLE);
             }
         }
     }
 
-    private void showList(boolean isOnline) {
+    private void showList() {
 
-        groups = new SparseArray<>();
+        groups = new ArrayList<>();
 
         for (int i = 0; i < entries.size(); i++) {
             GroupItem group = new GroupItem();
@@ -233,17 +300,13 @@ public class EventsFragment extends Fragment {
                 child.price = " ";
 
             group.items.append(group.items.size(), child);
-            groups.append(groups.size(), group);
+            groups.add(group);
 
             adapter.setData(groups);
             listView.setAdapter(adapter);
         }
 
-        if(!isOnline) {
-            TextView stand = (TextView) getView().findViewById(R.id.stand);
-            stand.setText("Zuletzt aktualisiert:\n"+ new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(new File(c.getFilesDir().getPath(), "events.xml").lastModified()) + " Uhr");
-        }
-
+        ((TextView) v.findViewById(R.id.stand)).setText("Zuletzt aktualisiert:\n" + new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(new File(c.getFilesDir().getPath(), "events.xml").lastModified()) + " Uhr");
 
         listView.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
 
@@ -253,6 +316,18 @@ public class EventsFragment extends Fragment {
                     listView.collapseGroupWithAnimation(groupPosition);
                 } else {
                     listView.expandGroupWithAnimation(groupPosition);
+                    SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(c);
+                    if (sharedPrefs.getBoolean("show_tutorial_events_more_info", true)) {
+                        final Snackbar snackbar = Snackbar.make(v, "Sie möchten mehr Info über das Menü? Tippen Sie einfach auf einen bereits ausgeklappten Eintrag", Snackbar.LENGTH_INDEFINITE);
+                        ((TextView) snackbar.getView().findViewById(android.support.design.R.id.snackbar_text)).setLines(3);
+                        snackbar.setAction("Okay!", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                snackbar.dismiss();
+                            }
+                        }).show();
+                        sharedPrefs.edit().putBoolean("show_tutorial_events_more_info", false).apply();
+                    }
                 }
                 return true;
             }
@@ -262,7 +337,23 @@ public class EventsFragment extends Fragment {
         listView.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
             @Override
             public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
-                Util.makeToast(c, "Hier muss Hauke noch was machen");
+                String date = entries.get(groupPosition).getDate();
+                date = date.replace(" Januar ", "1.");
+                date = date.replace(" Februar ", "2.");
+                date = date.replace(" März ", "3.");
+                date = date.replace(" April ", "4.");
+                date = date.replace(" Mai ", "5.");
+                date = date.replace(" Juni ", "6.");
+                date = date.replace(" Juli ", "7.");
+                date = date.replace(" August ", "8.");
+                date = date.replace(" September ", "9.");
+                date = date.replace(" Oktober ", "10.");
+                date = date.replace(" November ", "11.");
+                date = date.replace(" Dezember ", "12.");
+                Intent i = new Intent(c, MoreInfoActivity.class);
+                i.putExtra("title", entries.get(groupPosition).getTitle().replace(" - AUSGEBUCHT", "") + " " + date);
+                i.putExtra("moreInfo", entries.get(groupPosition).getMoreInfo());
+                startActivity(i);
                 return true;
             }
         });
@@ -270,7 +361,9 @@ public class EventsFragment extends Fragment {
         adapter.setData(groups);
         listView.setAdapter(adapter);
 
+        v.findViewById(R.id.progressBar).setVisibility(View.GONE);
     }
+
 
     private static class GroupItem {
         String title;
@@ -299,13 +392,13 @@ public class EventsFragment extends Fragment {
 
         private LayoutInflater inflater;
 
-        private SparseArray<GroupItem> items;
+        private List<GroupItem> items;
 
         private EventsAdapter(Context context) {
             inflater = LayoutInflater.from(context);
         }
 
-        public void setData(SparseArray<GroupItem> items) {
+        public void setData(List<GroupItem> items) {
             this.items = items;
         }
 
@@ -390,7 +483,6 @@ public class EventsFragment extends Fragment {
         public boolean isChildSelectable(int groupPosition, int childPosition) {
             return true;
         }
-
 
 
     }

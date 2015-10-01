@@ -3,11 +3,8 @@
     <!-- App -->
     <string name="app_label">Gasthof Schnau</string>
     <string name="action_settings">Einstellungen</string>
-    <string name="debug">DEBUG!</string>
-
-    <!-- Preference Keys -->
-    <string name="pref_key_general">pref_key_general</string>
-    <string name="pref_key_tutorial_reset">pref_key_tutorial_reset</string>
+    <string name="action_sync">Aktualisieren</string>
+    <string name="title_activity_more_info">Mehr Info</string>
 
     <!-- Tab titles -->
     <string name="tab_title_news">Aktuell</string>
@@ -25,10 +22,5 @@
     <string name="calling_gasthof_schnau">Gasthof Schnau wird kontaktiert…</string>
     <string name="gasthof_schnau_email">info@gasthof-schnau.de</string>
     <string name="please_wait">Einen Moment bitte…</string>
-
-    <!-- Preferences -->
-    <string name="pref_title_general">Allgemein</string>
-    <string name="pref_title_tutorial_reset">App-Erklärung zurücksetzen</string>
-    <string name="pref_summary_tutorial_reset">Startet die Erklärung der App neu</string>
 
 </resources>

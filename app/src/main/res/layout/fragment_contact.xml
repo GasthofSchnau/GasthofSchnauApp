@@ -4,18 +4,9 @@
     android:layout_height="match_parent"
     android:background="@drawable/gs_logo_bg">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:text="@string/contact_fragment_header"
-        android:textSize="20sp"
-        android:textStyle="bold"/>
-
     <GridView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
         android:id="@+id/gridView"
         android:columnWidth="90dp"
         android:numColumns="2"

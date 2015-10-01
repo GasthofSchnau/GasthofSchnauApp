@@ -26,7 +26,21 @@
         <activity
             android:name=".SettingsActivity"
             android:label="@string/action_settings"
-            android:parentActivityName=".MainActivity" >
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="de.gasthof_schnau.gasthofschnau.MainActivity" />
+            <intent-filter>
+                <action android:name="android.intent.action.MANAGE_NETWORK_USAGE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".MoreInfoActivity"
+            android:label="@string/title_activity_more_info"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="de.gasthof_schnau.gasthofschnau.MainActivity" />

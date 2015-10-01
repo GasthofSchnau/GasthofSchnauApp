@@ -10,6 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import de.gasthof_schnau.gasthofschnau.lib.TabManager;
+import de.gasthof_schnau.gasthofschnau.lib.Util;
 import de.gasthof_schnau.gasthofschnau.tab_fragments.ContactFragment;
 import de.gasthof_schnau.gasthofschnau.tab_fragments.EventsFragment;
 import de.gasthof_schnau.gasthofschnau.tab_fragments.NewsFragment;
@@ -41,7 +42,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
         switch (item.getItemId()) {
             case R.id.action_settings:
                 startActivity(new Intent(this, SettingsActivity.class));

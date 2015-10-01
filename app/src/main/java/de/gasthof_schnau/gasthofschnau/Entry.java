@@ -9,6 +9,10 @@ public class Entry {
     private String price;
     private String moreInfo;
 
+    public Entry() {
+
+    }
+
     public String getTitle() {
         return title;
     }
@@ -56,4 +60,5 @@ public class Entry {
     public void setMoreInfo(String moreInfo) {
         this.moreInfo = moreInfo;
     }
+
 }
