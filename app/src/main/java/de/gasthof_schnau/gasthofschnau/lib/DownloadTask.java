@@ -2,8 +2,6 @@ package de.gasthof_schnau.gasthofschnau.lib;
 
 import android.os.AsyncTask;
 
-import org.xmlpull.v1.XmlPullParserException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;

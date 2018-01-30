@@ -3,46 +3,23 @@ package de.gasthof_schnau.gasthofschnau.tab_fragments;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.util.SparseArray;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 import android.widget.Button;
 import android.widget.ExpandableListView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
-
+import de.gasthof_schnau.gasthofschnau.*;
+import de.gasthof_schnau.gasthofschnau.lib.*;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
-import de.gasthof_schnau.gasthofschnau.Entry;
-import de.gasthof_schnau.gasthofschnau.MoreInfoActivity;
-import de.gasthof_schnau.gasthofschnau.R;
-import de.gasthof_schnau.gasthofschnau.SettingsActivity;
-import de.gasthof_schnau.gasthofschnau.lib.AnimatedExpandableListView;
-import de.gasthof_schnau.gasthofschnau.lib.DownloadTask;
-import de.gasthof_schnau.gasthofschnau.lib.Internet;
-import de.gasthof_schnau.gasthofschnau.lib.Util;
-import de.gasthof_schnau.gasthofschnau.lib.XmlParser;
+import java.util.*;
 
 public class EventsFragment extends Fragment {
 
@@ -53,6 +30,7 @@ public class EventsFragment extends Fragment {
     private EventsAdapter adapter;
     private AnimatedExpandableListView listView;
     private List<GroupItem> groups;
+    private HashMap<String, String> moreInfos = new HashMap<>();
 
     private boolean showNoConnectionWarningToast;
 
@@ -162,6 +140,30 @@ public class EventsFragment extends Fragment {
     private class Parser extends XmlParser {
 
         @Override
+        protected List<Entry> read(XmlPullParser parser) throws XmlPullParserException, IOException {
+            List<Entry> entries = new ArrayList<>();
+
+            parser.require(XmlPullParser.START_TAG, ns, "feed");
+            while (parser.next() != XmlPullParser.END_TAG) {
+                if (parser.getEventType() != XmlPullParser.START_TAG) {
+                    continue;
+                }
+                String name = parser.getName();
+                if (name.equals("entry")) {
+                    entries.add(readEntry(parser));
+                } else if(name.equals("more_info")) {
+                    MoreInfo moreInfo = readMoreInfo(parser);
+                    moreInfos.put(moreInfo.getName(), moreInfo.getText());
+                } else {
+                    skip(parser);
+                }
+
+            }
+
+            return entries;
+        }
+
+        @Override
         protected Entry readEntry(XmlPullParser parser) throws XmlPullParserException, IOException {
             parser.require(XmlPullParser.START_TAG, null, "entry");
             Entry entry = new Entry();
@@ -186,7 +188,10 @@ public class EventsFragment extends Fragment {
                         entry.setPrice(readComponent(parser, "price").replace("\\n", "\n"));
                         break;
                     case "more_info":
-                        entry.setMoreInfo(readComponent(parser, "more_info").replace("\\n", "\n"));
+                        entry.setMoreInfo(moreInfos.get(readComponent(parser, "more_info")));
+                        break;
+                    case "ausgebucht":
+                        entry.setAusgebucht(Boolean.parseBoolean(readComponent(parser, "ausgebucht")));
                         break;
                     default:
                         skip(parser);
@@ -195,6 +200,31 @@ public class EventsFragment extends Fragment {
             }
             return entry;
         }
+
+        private MoreInfo readMoreInfo(XmlPullParser parser) throws IOException, XmlPullParserException {
+
+            parser.require(XmlPullParser.START_TAG, null, "more_info");
+            MoreInfo moreInfo = new MoreInfo();
+
+            while (parser.next() != XmlPullParser.END_TAG) {
+                if(parser.getEventType() != XmlPullParser.START_TAG)
+                    continue;
+                switch (parser.getName()) {
+                    case "name":
+                        moreInfo.setName(readComponent(parser, "name").replace("\\n", "\n"));
+                        break;
+                    case "text":
+                        moreInfo.setText(readComponent(parser, "text").replace("\\n", "\n"));
+                        break;
+                    default:
+                        skip(parser);
+                        break;
+                }
+            }
+
+            return moreInfo;
+        }
+
     }
 
     public void update(boolean manuallyUpdated) {
@@ -210,7 +240,7 @@ public class EventsFragment extends Fragment {
 
                 v.findViewById(R.id.listView).setVisibility(View.VISIBLE);
 
-                new DownloadEventsTask().execute("http://gasthofschnau.github.io/events.xml");
+                new DownloadEventsTask().execute("http://gasthof-schnau.de/hauke/index.php");
             } else {
                 try {
                     Parser parser = new Parser();
@@ -299,6 +329,8 @@ public class EventsFragment extends Fragment {
             else
                 child.price = " ";
 
+            child.isAusgebucht = entries.get(i).isAusgebucht();
+
             group.items.append(group.items.size(), child);
             groups.add(group);
 
@@ -317,9 +349,9 @@ public class EventsFragment extends Fragment {
                 } else {
                     listView.expandGroupWithAnimation(groupPosition);
                     SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(c);
-                    if (sharedPrefs.getBoolean("show_tutorial_events_more_info", true)) {
+                    if (sharedPrefs.getBoolean("show_tutorial_events_more_info", true) || new Random().nextInt(7) ==  3) {
                         final Snackbar snackbar = Snackbar.make(v, "Sie möchten mehr Info über das Menü? Tippen Sie einfach auf einen bereits ausgeklappten Eintrag", Snackbar.LENGTH_INDEFINITE);
-                        ((TextView) snackbar.getView().findViewById(android.support.design.R.id.snackbar_text)).setLines(3);
+                        ((TextView) snackbar.getView().findViewById(android.support.design.R.id.snackbar_text)).setLines(4);
                         snackbar.setAction("Okay!", new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
@@ -338,15 +370,15 @@ public class EventsFragment extends Fragment {
             @Override
             public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
                 String date = entries.get(groupPosition).getDate();
-                date = date.replace(" Januar ", "1.");
-                date = date.replace(" Februar ", "2.");
-                date = date.replace(" März ", "3.");
-                date = date.replace(" April ", "4.");
-                date = date.replace(" Mai ", "5.");
-                date = date.replace(" Juni ", "6.");
-                date = date.replace(" Juli ", "7.");
-                date = date.replace(" August ", "8.");
-                date = date.replace(" September ", "9.");
+                date = date.replace(" Januar ", "01.");
+                date = date.replace(" Februar ", "02.");
+                date = date.replace(" März ", "03.");
+                date = date.replace(" April ", "04.");
+                date = date.replace(" Mai ", "05.");
+                date = date.replace(" Juni ", "06.");
+                date = date.replace(" Juli ", "07.");
+                date = date.replace(" August ", "08.");
+                date = date.replace(" September ", "09.");
                 date = date.replace(" Oktober ", "10.");
                 date = date.replace(" November ", "11.");
                 date = date.replace(" Dezember ", "12.");
@@ -375,6 +407,7 @@ public class EventsFragment extends Fragment {
         String date;
         String time;
         String price;
+        boolean isAusgebucht;
     }
 
     private static class ChildHolder {
@@ -382,6 +415,7 @@ public class EventsFragment extends Fragment {
         TextView date;
         TextView time;
         TextView price;
+        TextView ausgebucht;
     }
 
     private static class GroupHolder {
@@ -423,6 +457,7 @@ public class EventsFragment extends Fragment {
                 holder.date = (TextView) convertView.findViewById(R.id.date);
                 holder.time = (TextView) convertView.findViewById(R.id.time);
                 holder.price = (TextView) convertView.findViewById(R.id.price);
+                holder.ausgebucht = (TextView) convertView.findViewById(R.id.ausgebucht);
                 convertView.setTag(holder);
             } else {
                 holder = (ChildHolder) convertView.getTag();
@@ -432,6 +467,7 @@ public class EventsFragment extends Fragment {
             holder.date.setText(item.date);
             holder.time.setText(item.time);
             holder.price.setText(item.price);
+            holder.ausgebucht.setVisibility(item.isAusgebucht ? View.VISIBLE : View.GONE);
 
             return convertView;
         }
@@ -469,7 +505,21 @@ public class EventsFragment extends Fragment {
                 holder = (GroupHolder) convertView.getTag();
             }
 
-            holder.title.setText(item.title);
+            String date = entries.get(groupPosition).getDate();
+            date = date.replace(" Januar ", "01.");
+            date = date.replace(" Februar ", "02.");
+            date = date.replace(" März ", "03.");
+            date = date.replace(" April ", "04.");
+            date = date.replace(" Mai ", "05.");
+            date = date.replace(" Juni ", "06.");
+            date = date.replace(" Juli ", "07.");
+            date = date.replace(" August ", "08.");
+            date = date.replace(" September ", "09.");
+            date = date.replace(" Oktober ", "10.");
+            date = date.replace(" November ", "11.");
+            date = date.replace(" Dezember ", "12.");
+
+            holder.title.setText(item.title + " - " + date);
 
             return convertView;
         }

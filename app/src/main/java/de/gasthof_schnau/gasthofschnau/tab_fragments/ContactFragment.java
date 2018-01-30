@@ -12,11 +12,11 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 
 import com.squareup.picasso.Picasso;
 
 import de.gasthof_schnau.gasthofschnau.R;
+import de.gasthof_schnau.gasthofschnau.lib.ExpandableHeightGridView;
 import de.gasthof_schnau.gasthofschnau.lib.Util;
 
 public class ContactFragment extends Fragment {
@@ -28,8 +28,8 @@ public class ContactFragment extends Fragment {
 
         final Context c = getActivity();
 
-        GridView gridView = (GridView) view.findViewById(R.id.gridView);
-
+        ExpandableHeightGridView gridView = (ExpandableHeightGridView) view.findViewById(R.id.gridView);
+        gridView.setExpanded(true);
         gridView.setAdapter(new ContactAdapter(c));
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v,

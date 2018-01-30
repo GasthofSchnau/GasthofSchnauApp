@@ -16,6 +16,8 @@
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:textStyle="bold"
         android:gravity="center_horizontal"
-        android:textSize="20sp"/>
+        android:textSize="20sp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"/>
 
 </LinearLayout>

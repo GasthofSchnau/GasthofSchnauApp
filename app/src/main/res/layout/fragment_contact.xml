@@ -1,18 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/gs_logo_bg">
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/gs_logo_bg">
+    <LinearLayout android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:orientation="vertical">
 
-    <GridView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/gridView"
-        android:columnWidth="90dp"
-        android:numColumns="2"
-        android:verticalSpacing="20dp"
-        android:horizontalSpacing="20dp"
-        android:stretchMode="columnWidth"
-        android:gravity="center"/>
+        <de.gasthof_schnau.gasthofschnau.lib.ExpandableHeightGridView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/gridView"
+                android:columnWidth="90dp"
+                android:numColumns="2"
+                android:verticalSpacing="20dp"
+                android:horizontalSpacing="20dp"
+                android:stretchMode="columnWidth"
+                android:gravity="center"/>
 
-</LinearLayout>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:text="Impressum gem. §5 TMG\n\nGasthof Schnau\nInh. Jürgen Schnau\nWorphauser Landstraße 3\n\n28865 Lilienthal\n\nTelefon: 0 42 08/23 12\nTelefax: 0 42 08/32 36\n\nE-Mail: info@gasthof-schnau.de\nInternet: www.schnau-lilienthal.de\nfacebook.com/gasthofschnau\n\nFür den Inhalt verantwortlich: Jürgen Schnau\n\nZuständige Aufsichtsbehörde:\nGewerbeanmeldung gem. § 30 GastG (Gemeinde Lilienthal)"
+                  android:layout_gravity="center_horizontal"
+            android:textSize="20sp"
+        android:textColor="@android:color/black"/>
+
+    </LinearLayout>
+</ScrollView>

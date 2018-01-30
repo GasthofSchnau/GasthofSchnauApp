@@ -14,7 +14,18 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
             android:id="@+id/title"
-            android:textSize="20sp"
+            android:textSize="17sp"
+            android:textColor="@android:color/black"
+            android:textStyle="bold"/>
+
+
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:id="@+id/price"
+            android:textSize="17sp"
             android:textColor="@android:color/black"/>
 
         <TextView
@@ -23,16 +34,11 @@
             android:layout_gravity="center_vertical"
 
             android:id="@+id/text"
-            android:textSize="15sp"
+            android:textSize="17sp"
             android:textColor="@android:color/black"/>
-    </LinearLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
-        android:id="@+id/price"
-        android:textSize="20sp"
-        android:textColor="@android:color/black"/>
+
+
+    </LinearLayout>
 
 </LinearLayout>

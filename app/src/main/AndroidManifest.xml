@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.gasthof_schnau.gasthofschnau" >
+    package="de.gasthof_schnau.gasthofschnau">
 
     <!-- Berechtigungen anfordern -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
@@ -11,11 +11,11 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_label"
-        android:theme="@style/AppTheme" >
+        android:theme="@style/AppTheme">
 
         <!-- MainActivity -->
         <activity
-            android:name=".MainActivity"
+            android:name="de.gasthof_schnau.gasthofschnau.MainActivity"
             android:label="@string/app_label"
             android:screenOrientation="portrait" >
             <intent-filter>
@@ -24,9 +24,9 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".SettingsActivity"
+            android:name="de.gasthof_schnau.gasthofschnau.SettingsActivity"
             android:label="@string/action_settings"
-            android:parentActivityName=".MainActivity"
+            android:parentActivityName="de.gasthof_schnau.gasthofschnau.MainActivity"
             android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -37,9 +37,9 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".MoreInfoActivity"
+            android:name="de.gasthof_schnau.gasthofschnau.MoreInfoActivity"
             android:label="@string/title_activity_more_info"
-            android:parentActivityName=".MainActivity"
+            android:parentActivityName="de.gasthof_schnau.gasthofschnau.MainActivity"
             android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"

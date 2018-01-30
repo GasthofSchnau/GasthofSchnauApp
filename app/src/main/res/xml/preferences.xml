@@ -1,15 +1,6 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <de.gasthof_schnau.gasthofschnau.lib.MyPreferenceCategory
-        android:title="DEBUG!"
-        android:key="pref_key_debug">
-        <Preference
-            android:title="App-Erklärung zurücksetzen"
-            android:key="pref_key_tutorial_reset"
-            android:summary="Wird später noch entfernt" />
-    </de.gasthof_schnau.gasthofschnau.lib.MyPreferenceCategory>
-
-    <de.gasthof_schnau.gasthofschnau.lib.MyPreferenceCategory
         android:title="Aktuell"
         android:key="pref_key_aktuell">
         <de.gasthof_schnau.gasthofschnau.lib.MyListPreference

@@ -8,10 +8,7 @@ public class Entry {
     private String time;
     private String price;
     private String moreInfo;
-
-    public Entry() {
-
-    }
+    private boolean ausgebucht;
 
     public String getTitle() {
         return title;
@@ -61,4 +58,11 @@ public class Entry {
         this.moreInfo = moreInfo;
     }
 
+    public boolean isAusgebucht() {
+        return ausgebucht;
+    }
+
+    public void setAusgebucht(boolean ausgebucht) {
+        this.ausgebucht = ausgebucht;
+    }
 }

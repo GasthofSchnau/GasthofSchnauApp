@@ -9,10 +9,9 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.SparseArray;
+import de.gasthof_schnau.gasthofschnau.R;
 
 import java.util.Locale;
-
-import de.gasthof_schnau.gasthofschnau.R;
 
 public class TabManager implements ActionBar.TabListener {
 

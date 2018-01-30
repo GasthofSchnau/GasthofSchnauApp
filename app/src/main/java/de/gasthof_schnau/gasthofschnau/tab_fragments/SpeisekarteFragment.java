@@ -3,40 +3,27 @@ package de.gasthof_schnau.gasthofschnau.tab_fragments;
 import android.content.Context;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.util.SparseArray;
 import android.util.Xml;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.Button;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
-
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
 import de.gasthof_schnau.gasthofschnau.R;
 import de.gasthof_schnau.gasthofschnau.SettingsActivity;
 import de.gasthof_schnau.gasthofschnau.lib.DownloadTask;
 import de.gasthof_schnau.gasthofschnau.lib.Internet;
 import de.gasthof_schnau.gasthofschnau.lib.Util;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 public class SpeisekarteFragment extends Fragment {
 
